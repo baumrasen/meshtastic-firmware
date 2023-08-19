@@ -75,6 +75,12 @@ NRF52Bluetooth *nrf52Bluetooth;
 #include "AccelerometerThread.h"
 #endif
 
+#if USE_TTN_MAPPER
+#include "TTNMConfiguration.h"
+#include "ttn.h"
+bool packetSent, packetQueued;
+#endif
+
 using namespace concurrency;
 
 // We always create a screen object, but we only init it if we find the hardware
@@ -179,6 +185,68 @@ RadioInterface *rIf = NULL;
 __attribute__((weak, noinline)) bool loopCanSleep()
 {
     return true;
+}
+
+void ttnCallback(uint8_t message) {
+    bool ttn_joined = false;
+    if (EV_JOINED == message) {
+        ttn_joined = true;
+    }
+    if (EV_JOINING == message) {
+        if (ttn_joined) {
+            screen->print("TTN joining...\n");
+        } else {
+            screen->print("Joined TTN!\n");
+        }
+    }
+    if (EV_JOIN_FAILED == message) screen->print("TTN join failed\n");
+    if (EV_REJOIN_FAILED == message) screen->print("TTN rejoin failed\n");
+    if (EV_RESET == message) screen->print("Reset TTN connection\n");
+    if (EV_LINK_DEAD == message) screen->print("TTN link dead\n");
+    if (EV_ACK == message) screen->print("ACK received\n");
+    if (EV_PENDING == message) screen->print("Message discarded\n");
+    if (EV_QUEUED == message) screen->print("Message queued\n");
+
+    // We only want to say 'packetSent' for our packets (not packets needed for joining)
+    if (EV_TXCOMPLETE == message && packetQueued) {
+        screen->print("Message sent\n");
+        packetQueued = false;
+        packetSent = true;
+    }
+
+    if (EV_RESPONSE == message) {
+        screen->print("[TTN] Response: ");
+
+        size_t len = ttn_response_len();
+        uint8_t data[len];
+        ttn_response(data, len);
+
+        char buffer[6];
+        for (uint8_t i = 0; i < len; i++) {
+            snprintf(buffer, sizeof(buffer), "%02X", data[i]);
+            screen->print(buffer);
+        }
+        screen->print("\n");
+    }
+}
+
+void ttnSetup()
+{
+    // TTN setup
+    if (!ttn_setup()) {
+
+        // if (REQUIRE_RADIO) {
+        //     delay(MESSAGE_TO_SLEEP_DELAY);
+        //     screen_off();
+        //     sleep_forever();
+        // }
+
+    }
+    else {
+        ttn_register(ttnCallback);
+        ttn_join();
+        ttn_adr(LORAWAN_ADR);
+    }
 }
 
 void setup()
@@ -729,6 +797,10 @@ void setup()
     webServerThread = new WebServerThread();
 #endif
 
+#if USE_TTN_MAPPER
+    ttnSetup();
+#endif
+
 #ifdef ARCH_PORTDUINO
     initApiServer(TCPPort);
 #endif
@@ -796,6 +868,10 @@ void loop()
 
     // For debugging
     // if (rIf) ((RadioLibInterface *)rIf)->isActivelyReceiving();
+
+#if USE_TTN_MAPPER
+    ttnLoop();
+#endif
 
 #ifdef DEBUG_STACK
     static uint32_t lastPrint = 0;

@@ -25,6 +25,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <Arduino.h>
+#include <lmic.h>
+void ttn_register(void (*callback)(uint8_t message));
 
 #ifdef RV3028_RTC
 #include "Melopero_RV3028.h"
@@ -83,6 +85,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // Disable the welcome screen and allow
 // #define DISABLE_WELCOME_UNSET
+
+// #ifndef USE_TTN_MAPPER
+#define USE_TTN_MAPPER 1
+// #endif
 
 // -----------------------------------------------------------------------------
 // OLED & Input
@@ -201,6 +207,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "DebugConfiguration.h"
 #include "RF95Configuration.h"
+#include "TTNMConfiguration.h"
 
 #ifndef HW_VENDOR
 #error HW_VENDOR must be defined

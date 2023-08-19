@@ -18,7 +18,7 @@
 #define USE_SX1268
 
 #define LORA_DIO0 26 // a No connect on the SX1262 module
-#define LORA_RESET 23
+#define LORA_RESET 23 // 14 in ttgo-tbeam-ttn-tracker (?)
 #define LORA_DIO1 33 // SX1262 IRQ
 #define LORA_DIO2 32 // SX1262 BUSY
 #define LORA_DIO3    // Not connected on PCB, but internally on the TTGO SX1262, if DIO3 is high the TXCO is enabled
